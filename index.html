@@ -2,7 +2,19 @@
 <html>
 <head>
   <title>Temporary Site</title>
+
+  <script>
+    const password = "1234"; // change this
+    const userInput = prompt("Enter password to view this page:");
+
+    if (userInput !== password) {
+      document.body.innerHTML = "";
+      alert("Access denied");
+      window.location.href = "about:blank";
+    }
+  </script>
 </head>
+
 <body>
   <h1>It works 🎉</h1>
   <p>This is my temporary website.</p>
