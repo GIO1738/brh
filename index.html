@@ -6,7 +6,7 @@
 <body>
 
 <script type="module">
-  // Firebase SDKs
+  // Firebase SDK
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
   import {
     getFirestore,
@@ -27,7 +27,7 @@
     appId: "1:817411167041:web:9f346caa327689f01e47c0"
   };
 
-  // Init Firebase
+  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
@@ -40,15 +40,15 @@
     throw new Error("No password");
   }
 
-  // Check Firestore
+  // Look up passwords in Firestore
   const snapshot = await getDocs(collection(db, "accessCodes"));
-  let found = false;
+  let matched = false;
 
   snapshot.forEach(async (docSnap) => {
     const data = docSnap.data();
 
     if (data.password === input) {
-      found = true;
+      matched = true;
 
       if (data.usesLeft <= 0) {
         await deleteDoc(doc(db, "accessCodes", docSnap.id));
@@ -56,12 +56,12 @@
         return;
       }
 
-      // Decrease usage
+      // Reduce uses
       await updateDoc(doc(db, "accessCodes", docSnap.id), {
         usesLeft: data.usesLeft - 1
       });
 
-      // Redirect ONLY to allowed YouTube link
+      // Redirect ONLY to the YouTube URL in Firestore
       window.location.href = data.url;
     }
   });
@@ -74,6 +74,9 @@
 
 </body>
 </html>
+   
+
+ 
 
   
   
