@@ -1,20 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>Private Video Access</title>
 </head>
 <body>
 
 <script type="module">
-  /*********************************
-   * FIREBASE SETUP
-   *********************************/
+  // Firebase SDKs
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    updateDoc,
+    deleteDoc,
+    doc
+  } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+  // Firebase config (yours)
   const firebaseConfig = {
-    apiKey: "AIzaSyABMybp4wDs-ZgwCLe_RN_Lvysi4HG2OCQ",
+    apiKey: "AIzaSyABMybp4wDs-ZgwCLe_RN_Lvysi4HG20CQ",
     authDomain: "godeloos-d25f7.firebaseapp.com",
     projectId: "godeloos-d25f7",
     storageBucket: "godeloos-d25f7.firebasestorage.app",
@@ -22,58 +27,53 @@
     appId: "1:817411167041:web:9f346caa327689f01e47c0"
   };
 
+  // Init Firebase
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  /*********************************
-   * PASSWORD → VIDEO LOGIC
-   *********************************/
-  const password = prompt("Enter your access password:");
+  // Ask for password
+  const input = prompt("Enter your access password:");
 
-  if (!password) {
+  if (!input) {
     alert("No password entered");
     document.body.innerHTML = "";
     throw new Error("No password");
   }
 
-  try {
-    // Each password is a document in Firestore
-    const ref = doc(db, "accessCodes", password);
-    const snap = await getDoc(ref);
+  // Check Firestore
+  const snapshot = await getDocs(collection(db, "accessCodes"));
+  let found = false;
 
-    if (!snap.exists()) {
-      alert("Invalid or expired password");
-      document.body.innerHTML = "";
-      throw new Error("Invalid password");
+  snapshot.forEach(async (docSnap) => {
+    const data = docSnap.data();
+
+    if (data.password === input) {
+      found = true;
+
+      if (data.usesLeft <= 0) {
+        await deleteDoc(doc(db, "accessCodes", docSnap.id));
+        alert("This password has expired");
+        return;
+      }
+
+      // Decrease usage
+      await updateDoc(doc(db, "accessCodes", docSnap.id), {
+        usesLeft: data.usesLeft - 1
+      });
+
+      // Redirect ONLY to allowed YouTube link
+      window.location.href = data.url;
     }
+  });
 
-    const data = snap.data();
-
-    // OPTIONAL: usage limit (example: 2 uses max)
-    if (data.uses >= 2) {
-      // Delete password forever
-      await deleteDoc(ref);
-      alert("This password has expired");
-      document.body.innerHTML = "";
-      throw new Error("Password expired");
-    }
-
-    // Increase usage count
-    await updateDoc(ref, {
-      uses: data.uses + 1
-    });
-
-    // Redirect ONLY to allowed YouTube video
-    window.location.href = data.videoUrl;
-
-  } catch (err) {
-    console.error(err);
+  if (!found) {
+    alert("Invalid or expired password");
+    document.body.innerHTML = "";
   }
 </script>
 
 </body>
 </html>
-   
 
-   
-    
+  
+  
