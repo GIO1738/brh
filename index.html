@@ -1,82 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Private Video Access</title>
+  <meta charset="UTF-8">
+  <title>Secure Access</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .box {
+      background: #222;
+      padding: 25px;
+      border-radius: 8px;
+      width: 300px;
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 4px;
+      border: none;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      background: #1db954;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .error {
+      color: #ff4d4d;
+      margin-top: 10px;
+    }
+  </style>
 </head>
+
 <body>
 
-<script type="module">
-  // Firebase SDK
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    getDocs,
-    updateDoc,
-    deleteDoc,
-    doc
-  } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+<div class="box">
+  <h2>Enter Access Password</h2>
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="checkPassword()">Unlock</button>
+  <div class="error" id="error"></div>
+</div>
 
-  // Firebase config (yours)
+<script>
+  // 🔥 YOUR FIREBASE CONFIG (PASTE YOURS HERE)
   const firebaseConfig = {
-    apiKey: "AIzaSyABMybp4wDs-ZgwCLe_RN_Lvysi4HG20CQ",
-    authDomain: "godeloos-d25f7.firebaseapp.com",
-    projectId: "godeloos-d25f7",
-    storageBucket: "godeloos-d25f7.firebasestorage.app",
-    messagingSenderId: "817411167041",
-    appId: "1:817411167041:web:9f346caa327689f01e47c0"
+    apiKey: "PASTE_API_KEY",
+    authDomain: "PASTE_AUTH_DOMAIN",
+    projectId: "PASTE_PROJECT_ID",
+    storageBucket: "PASTE_STORAGE_BUCKET",
+    messagingSenderId: "PASTE_SENDER_ID",
+    appId: "PASTE_APP_ID"
   };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-  // Ask for password
-  const input = prompt("Enter your access password:");
+  async function checkPassword() {
+    const input = document.getElementById("password").value.trim();
+    const error = document.getElementById("error");
+    error.textContent = "";
 
-  if (!input) {
-    alert("No password entered");
-    document.body.innerHTML = "";
-    throw new Error("No password");
-  }
+    if (!input) {
+      error.textContent = "Enter a password";
+      return;
+    }
 
-  // Look up passwords in Firestore
-  const snapshot = await getDocs(collection(db, "accessCodes"));
-  let matched = false;
+    try {
+      const ref = db.collection("passwords").doc(input);
+      const snap = await ref.get();
 
-  snapshot.forEach(async (docSnap) => {
-    const data = docSnap.data();
-
-    if (data.password === input) {
-      matched = true;
-
-      if (data.usesLeft <= 0) {
-        await deleteDoc(doc(db, "accessCodes", docSnap.id));
-        alert("This password has expired");
+      if (!snap.exists) {
+        error.textContent = "Invalid or expired password";
         return;
       }
 
-      // Reduce uses
-      await updateDoc(doc(db, "accessCodes", docSnap.id), {
-        usesLeft: data.usesLeft - 1
-      });
+      const data = snap.data();
+      const uses = data.uses || 0;
 
-      // Redirect ONLY to the YouTube URL in Firestore
-      window.location.href = data.url;
+      if (uses >= 2) {
+        await ref.delete();
+        error.textContent = "Password expired";
+        return;
+      }
+
+      // increment usage
+      await ref.update({ uses: uses + 1 });
+
+      // delete after second use
+      if (uses + 1 >= 2) {
+        await ref.delete();
+      }
+
+      // ✅ ONLY YOUTUBE REDIRECT
+      window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+
+    } catch (e) {
+      error.textContent = "Error checking password";
+      console.error(e);
     }
-  });
-
-  if (!matched) {
-    alert("Invalid or expired password");
-    document.body.innerHTML = "";
   }
 </script>
 
 </body>
 </html>
-   
+    
 
- 
+  
 
   
   
