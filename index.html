@@ -1,22 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Temporary Site</title>
-
-  <script>
-    const password = "1234"; // change this
-    const userInput = prompt("Enter password to view this page:");
-
-    if (userInput !== password) {
-      document.body.innerHTML = "";
-      alert("Access denied");
-      window.location.href = "about:blank";
-    }
-  </script>
+  <meta charset="UTF-8">
+  <title>Private Video Access</title>
 </head>
-
 <body>
-  <h1>It works 🎉</h1>
-  <p>This is my temporary website.</p>
+
+<script type="module">
+  /*********************************
+   * FIREBASE SETUP
+   *********************************/
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyABMybp4wDs-ZgwCLe_RN_Lvysi4HG2OCQ",
+    authDomain: "godeloos-d25f7.firebaseapp.com",
+    projectId: "godeloos-d25f7",
+    storageBucket: "godeloos-d25f7.firebasestorage.app",
+    messagingSenderId: "817411167041",
+    appId: "1:817411167041:web:9f346caa327689f01e47c0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  /*********************************
+   * PASSWORD → VIDEO LOGIC
+   *********************************/
+  const password = prompt("Enter your access password:");
+
+  if (!password) {
+    alert("No password entered");
+    document.body.innerHTML = "";
+    throw new Error("No password");
+  }
+
+  try {
+    // Each password is a document in Firestore
+    const ref = doc(db, "accessCodes", password);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      alert("Invalid or expired password");
+      document.body.innerHTML = "";
+      throw new Error("Invalid password");
+    }
+
+    const data = snap.data();
+
+    // OPTIONAL: usage limit (example: 2 uses max)
+    if (data.uses >= 2) {
+      // Delete password forever
+      await deleteDoc(ref);
+      alert("This password has expired");
+      document.body.innerHTML = "";
+      throw new Error("Password expired");
+    }
+
+    // Increase usage count
+    await updateDoc(ref, {
+      uses: data.uses + 1
+    });
+
+    // Redirect ONLY to allowed YouTube video
+    window.location.href = data.videoUrl;
+
+  } catch (err) {
+    console.error(err);
+  }
+</script>
+
 </body>
 </html>
+
